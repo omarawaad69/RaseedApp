@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شحن رصيد فودافون كاش</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #fff; padding: 15px; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { max-width: 480px; width: 100%; margin: 0 auto; }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 20px; border: 1px solid #2a2a2a; margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .logo { text-align: center; padding: 10px 0; }
+        .logo h1 { color: #FFD700; font-size: 24px; font-weight: bold; }
+        .logo span { color: #e60000; }
+        .status { padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: bold; text-align: center; font-size: 14px; }
+        .connected { background: #0a2a0a; color: #4caf50; border: 1px solid #2e7d32; }
+        .disconnected { background: #2a0a0a; color: #f44336; border: 1px solid #c62828; }
+        .loading { background: #1a1a2a; color: #ffcc44; border: 1px solid #aa8800; }
+        .input-group { margin: 12px 0; }
+        .input-group label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; text-align: right; }
+        .input-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; font-size: 16px; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: #FFD700; }
+        .input-group input::placeholder { color: #555; }
+        .amount-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+        .amount-grid button { padding: 12px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; font-size: 14px; cursor: pointer; transition: 0.3s; }
+        .amount-grid button:hover { border-color: #FFD700; background: #2a2a2a; }
+        .amount-grid button.active { background: #FFD700; color: #000; border-color: #FFD700; font-weight: bold; }
+        .info-box { background: #222; border-radius: 12px; padding: 12px; margin: 12px 0; border-right: 3px solid #FFD700; }
+        .info-box .row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+        .info-box .row .label { color: #888; }
+        .info-box .row .value { color: #FFD700; font-weight: bold; }
+        .info-box .row .value.green { color: #4caf50; }
+        .btn-charge { width: 100%; padding: 16px; border-radius: 12px; border: none; background: #e60000; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-charge:hover { background: #ff0000; transform: scale(1.01); }
+        .btn-charge:disabled { background: #444; cursor: not-allowed; transform: none; }
+        .error-box { background: #2a0a0a; border: 1px solid #c62828; border-radius: 12px; padding: 12px; margin: 10px 0; color: #f99; display: none; font-size: 14px; text-align: right; }
+        .success-box { background: #0a2a0a; border: 1px solid #2e7d32; border-radius: 12px; padding: 12px; margin: 10px 0; color: #9f9; display: none; font-size: 14px; text-align: right; }
+        .debug-box { background: #0a0a2a; border: 1px solid #4444aa; border-radius: 12px; padding: 12px; margin: 10px 0; color: #99f; font-size: 11px; display: none; max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; text-align: left; }
+        .footer { text-align: center; padding: 15px 0; font-size: 14px; color: #555; }
+        .footer .name { color: #FFD700; font-weight: bold; }
+        .footer a { color: #888; text-decoration: none; }
+        .footer a:hover { color: #FFD700; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>💰 <span>Raseed</span>App</h1>
+        </div>
+
+        <div id="mainApp" class="card">
+            <!-- حالة السيرفر -->
+            <div id="serverStatus" class="status loading">🔄 جاري الاتصال بالسيرفر...</div>
+            
+            <!-- حالة المحفظة -->
+            <div id="connStatus" class="status disconnected">❌ لم يتم الاتصال بالمحفظة</div>
+
+            <div class="input-group">
+                <label>📱 رقم المستلم</label>
+                <input type="tel" id="receiver" placeholder="010xxxxxxxx">
+            </div>
+
+            <div class="input-group">
+                <label>🔒 الرقم السري للمحفظة</label>
+                <input type="password" id="pin" placeholder="أدخل 6 أرقام" maxlength="6" inputmode="numeric">
+            </div>
+
+            <div class="info-box">
+                <div class="label" style="color:#888; font-size:12px; margin-bottom:10px;">💰 المبلغ المطلوب وصوله للرقم</div>
+                <div class="amount-grid">
+                    <button data-amount="2">٢ ج</button>
+                    <button data-amount="5">٥ ج</button>
+                    <button data-amount="10">١٠ ج</button>
+                    <button data-amount="20">٢٠ ج</button>
+                    <button data-amount="30">٣٠ ج</button>
+                    <button data-amount="50">٥٠ ج</button>
+                    <button data-amount="100">١٠٠ ج</button>
+                </div>
+            </div>
+
+            <div id="calculationBox" class="info-box hidden">
+                <div style="color:#888; font-size:12px; margin-bottom:10px;">📊 تفاصيل العملية</div>
+                <div class="row">
+                    <span class="label">الرصيد المطلوب:</span>
+                    <span class="value green" id="displayTarget">0 جنيه</span>
+                </div>
+                <div class="row">
+                    <span class="label">المبلغ المخصوم من المحفظة:</span>
+                    <span class="value" id="displayDeduct">0 جنيه</span>
+                </div>
+                <div class="row">
+                    <span class="label">نسبة العمولة:</span>
+                    <span class="value" style="color:#ff9800;">~42.8%</span>
+                </div>
+            </div>
+
+            <div id="errorBox" class="error-box"></div>
+            <div id="successBox" class="success-box"></div>
+            <div id="debugBox" class="debug-box"></div>
+
+            <button id="btnSubmit" class="btn-charge" disabled>🚀 شحن الرصيد الآن</button>
+        </div>
+
+        <div class="footer">
+            <div class="name">𝕆𝕞𝕒𝕣 𝔸𝕓𝕕 𝔼𝕝 𝔾𝕒𝕨𝕒𝕒𝕕</div>
+            <a href="https://t.me/omarawad68">@omarawad68</a>
+        </div>
+    </div>
+
+    <script>
+        // ========== الإعدادات ==========
+        // استخدام Worker URL بدلاً من localhost
+        const WORKER_URL = 'https://your-worker-name.your-username.workers.dev';
+        // OR: استخدم عنوان السيرفر اللي هتنشره
+        // const SERVER_URL = 'https://your-domain.com';
+        
+        // مؤقتاً استخدم localhost للتجربة
+        const SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:5000' 
+            : WORKER_URL;
+
+        let senderMsisdn = '';
+        let seamlessToken = '';
+        let selectedAmount = 0;
+
+        // ========== حساب المبلغ ==========
+        function calculateAmount(target) {
+            const targetFloat = parseFloat(target);
+            if (isNaN(targetFloat) || targetFloat <= 0) return null;
+            const ratio = 8 / 5.6;
+            const deducted = Math.ceil(targetFloat * ratio);
+            return { target: targetFloat, deducted: deducted };
+        }
+
+        function updateCalculation() {
+            const target = selectedAmount;
+            const calc = calculateAmount(target);
+            const box = document.getElementById('calculationBox');
+            if (!calc || calc.target <= 0) {
+                box.classList.add('hidden');
+                return;
+            }
+            box.classList.remove('hidden');
+            document.getElementById('displayTarget').textContent = calc.target.toFixed(2) + ' جنيه';
+            document.getElementById('displayDeduct').textContent = calc.deducted + ' جنيه';
+        }
+
+        // ========== الاتصال بالسيرفر ==========
+        async function checkServer() {
+            const statusEl = document.getElementById('serverStatus');
+            const connEl = document.getElementById('connStatus');
+            
+            try {
+                const res = await fetch(SERVER_URL + '/connect');
+                const data = await res.json();
+                
+                if (data.success) {
+                    statusEl.textContent = '✅ السيرفر متصل';
+                    statusEl.className = 'status connected';
+                    
+                    seamlessToken = data.seamlessToken;
+                    senderMsisdn = data.msisdn;
+                    
+                    connEl.textContent = '✅ متصل برقم المحفظة: ' + senderMsisdn;
+                    connEl.className = 'status connected';
+                    document.getElementById('btnSubmit').disabled = false;
+                } else {
+                    statusEl.textContent = '❌ ' + (data.error || 'فشل الاتصال');
+                    statusEl.className = 'status disconnected';
+                    connEl.textContent = '❌ لم يتم الاتصال بالمحفظة';
+                    connEl.className = 'status disconnected';
+                    document.getElementById('btnSubmit').disabled = true;
+                }
+            } catch (e) {
+                statusEl.textContent = '⚠️ لا يمكن الاتصال بالسيرفر';
+                statusEl.className = 'status disconnected';
+                connEl.textContent = '❌ يرجى التحقق من الاتصال';
+                connEl.className = 'status disconnected';
+                document.getElementById('btnSubmit').disabled = true;
+                
+                // محاولة إعادة الاتصال تلقائياً
+                setTimeout(checkServer, 5000);
+            }
+        }
+
+        // ========== الشحن ==========
+        async function startCharge() {
+            document.getElementById('errorBox').style.display = 'none';
+            document.getElementById('successBox').style.display = 'none';
+            document.getElementById('debugBox').style.display = 'none';
+            
+            const receiver = document.getElementById('receiver').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            const target = selectedAmount;
+            
+            if (!receiver || !receiver.match(/^01[0-9]{9}$/)) {
+                showError('❌ يرجى إدخال رقم مستلم صحيح (010xxxxxxxx)');
+                return;
+            }
+            if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+                showError('❌ يرجى إدخال الرقم السري 6 أرقام');
+                return;
+            }
+            
+            const calc = calculateAmount(target);
+            if (!calc || calc.target <= 0) {
+                showError('❌ يرجى اختيار المبلغ المطلوب');
+                return;
+            }
+            
+            if (!confirm(`📊 تأكيد العملية:\n\n📱 المستلم: ${receiver}\n💰 الرصيد المطلوب: ${calc.target.toFixed(2)} جنيه\n💳 المبلغ المخصوم: ${calc.deducted} جنيه\n\n⚠️ هل تريد المتابعة؟`)) return;
+
+            const btn = document.getElementById('btnSubmit');
+            btn.textContent = "🔄 جاري الشحن...";
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(SERVER_URL + '/charge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receiver: receiver,
+                        pin: pin,
+                        amount: calc.deducted,
+                        seamlessToken: seamlessToken,
+                        senderMsisdn: senderMsisdn
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (data.response && (data.response.state === 'Completed' || data.response.code === '0000')) {
+                        showSuccess(`✅ تمت عملية الشحن بنجاح!\n\n📱 الرقم: ${receiver}\n💰 الرصيد: ${calc.target.toFixed(2)} جنيه\n💳 الخصم: ${calc.deducted} جنيه`);
+                    } else if (data.response && data.response.code && data.response.code !== '0000') {
+                        showError(`❌ فشل الشحن\n📋 الكود: ${data.response.code}\n📝 السبب: ${data.response.reason || 'غير معروف'}`);
+                    } else {
+                        showSuccess(`✅ تم تنفيذ الطلب بنجاح\n📱 الرقم: ${receiver}\n💰 الرصيد المتوقع: ${calc.target.toFixed(2)} جنيه`);
+                    }
+                } else {
+                    showError(`❌ حدث خطأ: ${data.error || 'غير معروف'}`);
+                }
+            } catch (e) {
+                showError(`⚠️ حدث خطأ: ${e.message}`);
+            } finally {
+                btn.textContent = "🚀 شحن الرصيد الآن";
+                btn.disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorBox');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('successBox').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successBox');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('errorBox').style.display = 'none';
+        }
+
+        // ========== ربط الأحداث ==========
+        document.getElementById('btnSubmit').addEventListener('click', startCharge);
+
+        document.querySelectorAll('.amount-grid button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.amount-grid button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedAmount = parseFloat(this.dataset.amount);
+                updateCalculation();
+            });
+        });
+
+        // منع إدخال حروف في حقل الرقم السري
+        document.getElementById('pin').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        // ========== بدء التطبيق ==========
+        window.addEventListener('load', function() {
+            checkServer();
+            // إعادة المحاولة كل 10 ثواني
+            setInterval(checkServer, 10000);
+        });
+    </script>
+</body>
+</html>
